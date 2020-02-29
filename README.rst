@@ -1,9 +1,9 @@
-andosku-sudoku-loader
+andoku-sudoku-loader
 =====================
 
 |pythonversion| |version| |githubrepo| |poetry|
 
-This small application takes files of *.adkb format, of *STANDARD* Sudoku puzzles and loads them.
+This small application takes files of *.adkb format, of standard Sudoku puzzles and loads them.
 
 Development
 -----------
