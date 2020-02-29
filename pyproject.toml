@@ -1,0 +1,33 @@
+[tool.poetry]
+name = "andoku-sudoku-loader"
+version = "2020.01.1"
+description = "Loads Andoku Sudoku Files"
+authors = ["Lasse Gravesen <gravesenlasse@gmail.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.7"
+numpy = "1.18.1"
+basicsudoku = "0.1.2"
+python-dotenv = "^0.11.0"
+
+[tool.poetry.dev-dependencies]
+black = "19.10b0"
+flake8 = "*"
+flake8-absolute-import = "*"
+flake8-bugbear = "*"
+flake8-docstrings = "*"
+mypy = "*"
+isort = "*"
+mccabe = "*"
+pre-commit = "*"
+pre-commit-hooks = "*"
+"punch.py" = "*"
+pytest = "*"
+pytest-cov = "*"
+pytest-env = "*"
+restructuredtext_lint = "*"
+seed-isort-config = "*"
+
+[build-system]
+requires = ["poetry>=0.12"]
+build-backend = "poetry.masonry.api"
