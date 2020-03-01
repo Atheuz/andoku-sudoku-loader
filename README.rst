@@ -24,7 +24,7 @@ To run, run:
 .. |pythonversion| image:: https://img.shields.io/badge/python-3.7-blue.svg
    :target: https://www.python.org/
    :alt: Supported Python Versions
-.. |version| image:: https://img.shields.io/badge/calver-2020.01.1-blue.svg
+.. |version| image:: https://img.shields.io/badge/calver-2020.03.1-blue.svg
    :alt: CalVer format
 .. |githubrepo| image:: https://img.shields.io/badge/GitHub-Repo-green.svg?longCache=true&style=flat
    :target: https://github.com/Atheuz/Andoku-Sudoku-Loader

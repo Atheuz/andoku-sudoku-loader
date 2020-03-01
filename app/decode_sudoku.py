@@ -53,21 +53,19 @@ class CellValueGetter:
 class Puzzle:
     """Puzzle representation."""
 
-    def __init__(self, x, y, z, bin_values=None, bin_to_remove=None):
+    def __init__(self, x, bin_values=None, bin_to_remove=None):
         """Initialize."""
+        self.x = x
         self.bin_values = bin_values
         self.bin_to_remove = bin_to_remove
-        self.x = x
-        self.y = y
-        self.z = z
         self.puzzle = np.zeros((9, 9), dtype=np.int8)
+        self.loaded = False
 
     def __str__(self):
         """Defines how to represent the Sudoku Puzzle as a str."""
         return (
             f"<Puzzle x={self.x} "
-            f"y={self.y} "
-            f"z={self.z} "
+            f"flat_puzzle={self.flat_puzzle} "
             f"bin_values={self.bin_values} "
             f"bin_to_remove={self.bin_to_remove}>"
         )
@@ -81,39 +79,54 @@ class Puzzle:
         checker = CellTypeChecker(self.bin_to_remove)
         for i in range(self.x):
             for i2 in range(self.x):
-                if checker.check():
+                check = checker.check()
+                if check:
                     pass
                 else:
+                    # this is incremented to 0 as the last part of the load step
+                    # but this needs to be differentiated here from regular 0s, so we set it to -1.
                     self.puzzle[i][i2] = -1
 
     @property
     def flat_puzzle(self):
         """Return a flattened version of the Sudoku."""
-        return "".join([str(x) for x in self.puzzle.flatten()])
+        if self.loaded:
+            return "".join([str(x) for x in self.puzzle.flatten()])
+        else:
+            return None
 
     @property
     def sudokuwiki(self):
         """Returns the sudokuwiki form of the Sudoku."""
-        d = {1: 1, 2: 2, 4: 3, 8: 4, 16: 5, 32: 6, 64: 7, 128: 8, 256: 9, 511: 0}
-        rev_d = {v: k for k, v in d.items()}
-        return ",".join([str(rev_d[int(x)]) for x in self.flat_puzzle])
+        if self.loaded:
+            d = {1: 1, 2: 2, 4: 3, 8: 4, 16: 5, 32: 6, 64: 7, 128: 8, 256: 9, 511: 0}
+            rev_d = {v: k for k, v in d.items()}
+            return ",".join([str(rev_d[int(x)]) for x in self.flat_puzzle])
+        else:
+            return None
 
     @property
     def basicsudoku(self):
         """Returns the basicsudoku representation of the Sudoku."""
-        symbols = "".join([x if 1 < int(x) < 9 else "." for x in self.flat_puzzle])
-        board = basicsudoku.SudokuBoard(symbols=symbols)
-        return board
+        if self.loaded:
+            symbols = "".join([x if 1 <= int(x) <= 9 else "." for x in self.flat_puzzle])
+            board = basicsudoku.SudokuBoard(symbols=symbols)
+            return board
+        else:
+            return None
 
-    def rotate90(self):
+    def rot90(self):
         """Rotate the puzzle by 90 degrees."""
-        self.puzzle = np.rot90(self.puzzle)
-        return self.puzzle
+        if self.loaded:
+            self.puzzle = np.rot90(self.puzzle)
+            return self
+        else:
+            return None
 
-    def load_puzzle(self, load_as_unsolved: bool = False):
+    def load_puzzle(self, load_as_solved: bool = False):
         """Load the puzzle, by default as a fully solved Sudoku.
 
-        Specify `load_as_unsolved=True` if it should be unsolved.
+        Specify `load_as_solved=True` if it should be solved.
 
         """
         p = CellValueGetter(self.bin_values)
@@ -139,7 +152,7 @@ class Puzzle:
             self.puzzle[self.x - 1][i4] = a2 - i5
 
         # Remove knowns, producing the unsolved Sudoku.
-        if load_as_unsolved:
+        if not load_as_solved:
             self.remove_knowns()
 
         # Values need to be incremented by 1.
@@ -147,11 +160,33 @@ class Puzzle:
             for j in range(self.x):
                 self.puzzle[i][j] += 1
 
-        # For all -1's values, convert them to 0s to be able to load them as unknowns in sudokuwiki.
-        for i in range(self.x):
-            for j in range(self.x):
-                if self.puzzle[i][j] == -1:
-                    self.puzzle[i][j] = 0
+        self.loaded = True
+
+
+def load_file(fn, load_as_solved=False):
+    """Load puzzles from an .adkb file."""
+    lst: typing.List[Puzzle] = list()
+    with open(fn, "rb") as f:
+        start = f.read(1)
+        mid = f.read(1)
+        end = f.read(2)
+        readbyte = int.from_bytes(start, byteorder="big")
+        # below is unimportant, related to Sudoku type, always 0 in this case
+        _ = int.from_bytes(mid, byteorder="big")
+        readshort = int.from_bytes(end, byteorder="big")
+        for _ in range(readshort):
+            p = Puzzle(x=readbyte)
+            i2 = readbyte - 1
+            to_read1 = (((i2 * i2) * 4) + 4) // 8
+            bytes1 = f.read(to_read1)
+            i3 = readbyte * readbyte
+            to_read2 = (i3 + 7) // 8
+            bytes2 = f.read(to_read2)
+            p.bin_values = bytes1
+            p.bin_to_remove = bytes2
+            p.load_puzzle(load_as_solved=load_as_solved)
+            lst.append(p)
+    return lst
 
 
 def main():
@@ -160,29 +195,14 @@ def main():
     fn = "std_n_{num}.adkb"
     lst: typing.List[Puzzle] = list()
     for num in range(1, 9 + 1):
-        with open(path + fn.format(num=num), "rb") as f:
-            start = f.read(1)
-            mid = f.read(1)
-            end = f.read(2)
-            readbyte = int.from_bytes(start, byteorder="big")
-            a2 = int.from_bytes(mid, byteorder="big")
-            readshort = int.from_bytes(end, byteorder="big")
-            for _ in range(readshort):
-                p = Puzzle(readbyte, a2, readshort)
-                i2 = readbyte - 1
-                to_read1 = (((i2 * i2) * 4) + 4) // 8
-                bytes1 = f.read(to_read1)
-                i3 = readbyte * readbyte
-                to_read2 = (i3 + 7) // 8
-                bytes2 = f.read(to_read2)
-                p.bin_values = bytes1
-                p.bin_to_remove = bytes2
-                lst.append(p)
+        filename = path + fn.format(num=num)
+        lst.extend(load_file(filename, load_as_solved=False))
+        break
 
     for _idx, each in enumerate(lst, start=1):
-        each.load_puzzle(load_as_unsolved=True)
         print(each)
         print(each.puzzle)
+        print(each.puzzle.tolist())
         print(len(each.bin_values))
         print(len(each.bin_to_remove))
         print(each.flat_puzzle)

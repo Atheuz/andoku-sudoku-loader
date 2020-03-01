@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "andoku-sudoku-loader"
-version = "2020.01.1"
+version = "2020.03.1"
 description = "Loads Andoku Sudoku Files"
 authors = ["Lasse Gravesen <gravesenlasse@gmail.com>"]
 
