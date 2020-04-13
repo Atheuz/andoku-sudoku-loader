@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "andoku-sudoku-loader"
-version = "2020.03.1"
+version = "2020.04.1"
 description = "Loads Andoku Sudoku Files"
 authors = ["Lasse Gravesen <gravesenlasse@gmail.com>"]
 
@@ -9,6 +9,9 @@ python = "^3.7"
 numpy = "1.18.1"
 basicsudoku = "0.1.2"
 python-dotenv = "^0.11.0"
+requests = "^2.23.0"
+lxml = "^4.5.0"
+responses = "^0.10.12"
 
 [tool.poetry.dev-dependencies]
 black = "19.10b0"

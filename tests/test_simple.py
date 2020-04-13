@@ -105,6 +105,69 @@ def test_rotated(sudoku_solved, sudoku_unsolved):
         assert case.flat_puzzle == cp.flat_puzzle
 
 
+def test_rotated_unloaded(sudoku_unloaded):
+    """Test that rotating the Sudoku returns what is expected for an unloaded Sudoku."""
+    cp = copy.deepcopy(sudoku_unloaded)
+    val = cp.rot90()  # rotate 90 degrees.
+    assert val is None
+
+
+def test_grading_unsolved(sudoku_unsolved):
+    """Test that grading a Sudoku works as intended."""
+    result = sudoku_unsolved.sudokuwiki_difficulty
+    assert result
+    text, value = result
+    assert text, value
+    assert isinstance(text, str)
+    assert isinstance(value, int)
+    assert value == 3  # arbitrary difficulty
+
+
+def test_grading_unsolved_bad_request(sudoku_unsolved, responses):
+    """Test that grading a Sudoku fails gracefully on a bad request."""
+    responses.add(
+        responses.POST, "https://www.sudokuwiki.org/ServerSolver.asp?k=0", status=500,
+    )
+    result = sudoku_unsolved.sudokuwiki_difficulty
+    assert result
+    text, value = result
+    assert text, value
+    assert isinstance(text, str)
+    assert isinstance(value, int)
+    assert text == "The request to Sudokuwiki failed"
+    assert value == 0
+
+
+def test_grading_unsolved_bad_response(sudoku_unsolved, responses):
+    """Test that grading a Sudoku fails gracefully on a bad response."""
+    responses.add(
+        responses.POST,
+        "https://www.sudokuwiki.org/ServerSolver.asp?k=0",
+        body="<html><head></head><body></body></html>",
+        status=200,
+    )
+    result = sudoku_unsolved.sudokuwiki_difficulty
+    assert result
+    text, value = result
+    assert text, value
+    assert isinstance(text, str)
+    assert isinstance(value, int)
+    assert text == "The output from Sudokuwiki was bad"
+    assert value == 0
+
+
+def test_grading_solved(sudoku_solved):
+    """Test that grading a Sudoku works as intended."""
+    result = sudoku_solved.sudokuwiki_difficulty
+    assert result
+    text, value = result
+    assert text, value
+    assert isinstance(text, str)
+    assert isinstance(value, int)
+    assert text == "The provided Sudoku could not be graded"
+    assert value == 0
+
+
 def test_load_file(sudoku_filename):
     """Test load Sudoku file."""
     lst = load_file(sudoku_filename)

@@ -1,5 +1,6 @@
 """Test configuration."""
 import pytest
+from responses import RequestsMock
 
 from app.decode_sudoku import Puzzle
 
@@ -202,3 +203,20 @@ def sudoku_solved(cell_bin_values, cell_bin_to_remove):
     puz = Puzzle(x=x, bin_values=bin_values, bin_to_remove=bin_to_remove)
     puz.load_puzzle(load_as_solved=True)
     return puz
+
+
+@pytest.fixture(scope="function")
+def sudoku_unloaded(cell_bin_values, cell_bin_to_remove):
+    """Get an unloaded Sudoku."""
+    x = 9
+    bin_values = cell_bin_values
+    bin_to_remove = cell_bin_to_remove
+    puz = Puzzle(x=x, bin_values=bin_values, bin_to_remove=bin_to_remove)
+    return puz
+
+
+@pytest.fixture(scope="function")
+def responses():
+    """Set up the responses mock."""
+    with RequestsMock(assert_all_requests_are_fired=True) as resp:
+        yield resp

@@ -1,8 +1,26 @@
 """Main functionality."""
+import collections
+import enum
 import typing
 
 import basicsudoku  # noqa: F401
+import lxml.html
 import numpy as np
+import requests
+
+
+class Difficulty(int, enum.Enum):
+    """Enum of Andoku file name difficulties."""
+
+    Very_Easy = 1
+    Easy = 2
+    Moderate = 3
+    Challenging = 4
+    Tricky = 5
+    Hard = 6
+    Very_Hard = 7
+    Extreme = 8
+    Ultra_Extreme = 9
 
 
 class CellTypeChecker:
@@ -60,6 +78,7 @@ class Puzzle:
         self.bin_to_remove = bin_to_remove
         self.puzzle = np.zeros((9, 9), dtype=np.int8)
         self.loaded = False
+        self.solved = False
 
     def __str__(self):
         """Defines how to represent the Sudoku Puzzle as a str."""
@@ -104,6 +123,51 @@ class Puzzle:
             return ",".join([str(rev_d[int(x)]) for x in self.flat_puzzle])
         else:
             return None
+
+    @property
+    def sudokuwiki_difficulty(self) -> typing.Tuple[str, int]:
+        """Get the difficulty that sudokuwiki gives this Sudoku."""
+        if self.loaded is False or self.solved is True:
+            return "The provided Sudoku could not be graded", 0
+
+        # Set up and make request to sudokuwiki for grading.
+        url = "https://www.sudokuwiki.org/ServerSolver.asp?k=0"
+        payload = {
+            "ff": "1",
+            "k": "0",
+            "gors": "1",
+            "coordmode": "1",
+            "mapno": "0",
+            "fullreport": "0",
+            "strat": "XWG",
+            "stratmask": "XWGSCNSFHXCYXYC3DMJFH",
+            "board": self.sudokuwiki,
+            "version": "2.08",
+        }
+        resp = requests.post(url, data=payload)
+        if not resp.ok:
+            return "The request to Sudokuwiki failed", 0
+
+        # Convert to lxml.html for more easily queryable structure.
+        content = lxml.html.fromstring(resp.content)
+
+        # Get values that we are interested in, grade text and grade value.
+        grade_text = content.xpath("//body/font/b/text()")
+        grade_value = content.xpath("//body/p[1]/text()")
+        grade_value_desc = "Overall Score: "
+
+        # Parse values
+        try:
+            assert grade_text
+            assert grade_value
+            grade_text = grade_text.pop()
+            grade_value = grade_value.pop()
+            assert grade_value_desc in grade_value
+            grade_value = grade_value.replace(grade_value_desc, "")
+            assert grade_value.isdigit()
+            return (grade_text, int(grade_value))
+        except Exception:
+            return "The output from Sudokuwiki was bad", 0
 
     @property
     def basicsudoku(self):
@@ -161,6 +225,7 @@ class Puzzle:
                 self.puzzle[i][j] += 1
 
         self.loaded = True
+        self.solved = load_as_solved
 
 
 def load_file(fn, load_as_solved=False):
@@ -189,27 +254,40 @@ def load_file(fn, load_as_solved=False):
     return lst
 
 
-def main():
+def main():  # pragma: no cover
     """Main call."""
     path = "files/"
     fn = "std_n_{num}.adkb"
-    lst: typing.List[Puzzle] = list()
-    for num in range(1, 9 + 1):
-        filename = path + fn.format(num=num)
-        lst.extend(load_file(filename, load_as_solved=False))
-        break
+    lst: typing.Dict[Difficulty, typing.List[Puzzle]] = collections.defaultdict(list)
+    difficulties = [d for d in Difficulty]
+    for difficulty in difficulties:
+        filename = path + fn.format(num=difficulty.value)
+        puzzles = load_file(filename, load_as_solved=False)
+        lst[difficulty].extend(puzzles)
+    print(len(lst))
+    for difficulty in lst:
+        print(difficulty)
+        s = 0
+        for idx, each in enumerate(lst[difficulty], start=1):
+            # print(each)
+            # print(each.puzzle)
+            # print(each.puzzle.tolist())
+            # print(len(each.bin_values))
+            # print(len(each.bin_to_remove))
+            print(each.flat_puzzle)
+            # print(each.basicsudoku)
+            # print(each.sudokuwiki)
+            print("Difficulty file:", difficulty)
+            _, int_grade = each.sudokuwiki_difficulty
+            print("Difficulty:", int_grade)
+            s += int_grade
+            print()
+            if idx > 10:
+                print("total grade:", s)
+                print("avg grade:", s / 10)
+                print()
+                break
 
-    for _idx, each in enumerate(lst, start=1):
-        print(each)
-        print(each.puzzle)
-        print(each.puzzle.tolist())
-        print(len(each.bin_values))
-        print(len(each.bin_to_remove))
-        print(each.flat_puzzle)
-        print(each.basicsudoku)
-        print(each.sudokuwiki)
-        break
 
-
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     main()

@@ -1,0 +1,15 @@
+version: '3.3'
+services:
+  github-runner:
+    build:
+        dockerfile: Dockerfile
+        context: .
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /tmp/github-runner:/tmp/github-runner
+    environment:
+      REPO_URL: https://github.com/Atheuz/andoku-sudoku-loader
+      RUNNER_NAME: "github-runner"
+      RUNNER_TOKEN: AABRPSCQ4YEYUY6TGACZOY26MF5MM
+      RUNNER_WORKDIR: "/tmp/github-runner"
+    restart: always
